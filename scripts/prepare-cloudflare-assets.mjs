@@ -1,4 +1,4 @@
-import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, rm, writeFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -44,8 +44,21 @@ const ensureInsideRoot = (targetPath) => {
   }
 };
 
+const pathExists = async (p) => {
+  try {
+    await access(p);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const copyFileToDist = async (relativePath) => {
   const source = path.join(rootDir, relativePath);
+  if (!await pathExists(source)) {
+    console.warn(`Skipping missing file: ${relativePath}`);
+    return;
+  }
   const destination = path.join(distDir, relativePath);
   await mkdir(path.dirname(destination), { recursive: true });
   await cp(source, destination);
@@ -53,6 +66,10 @@ const copyFileToDist = async (relativePath) => {
 
 const copyDirToDist = async (relativePath) => {
   const source = path.join(rootDir, relativePath);
+  if (!await pathExists(source)) {
+    console.warn(`Skipping missing directory: ${relativePath}`);
+    return;
+  }
   const destination = path.join(distDir, relativePath);
   await cp(source, destination, {
     recursive: true,
